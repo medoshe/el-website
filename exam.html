@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Online Examination – el website</title>
+<style>
+:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html{font-size:clamp(11px,1.34vw,18px);height:100%}
+body{margin:0;height:100%;background:#fff;color:#1a1a1a;font-family:"Segoe UI",Tahoma,"Noto Sans Arabic",Arial,sans-serif}
+.app{height:100%;display:flex;flex-direction:column}
+header{background:#0c6e5e;color:#fff;text-align:left;padding:0 1.5rem;margin-top:1.2rem;font-size:1.35rem;font-weight:600;height:3.2rem;line-height:3.2rem;flex:none}
+.body{flex:1;display:flex;min-height:0}
+aside{width:16rem;flex:none;background:#f1f1f1;padding:.7rem .7rem .9rem;overflow:auto;display:flex;flex-direction:column}
+.timer{border:1.5px solid #c0392b;border-radius:.4rem;background:#f4f4f4;overflow:hidden;text-align:center}
+.tl{background:#e6e6e6;border-bottom:1px solid #d0d0d0;font-size:1rem;padding:.35rem .5rem;text-align:right}
+.tb{font-size:2.8rem;font-weight:700;color:#c0261f;direction:ltr;line-height:1.5;background:#fff}
+.leg{display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem .8rem;margin:.8rem 0 .7rem;font-size:.75rem;color:#333}
+.leg span{display:flex;align-items:center;gap:.3rem}
+.leg i{width:.95rem;height:.95rem;border-radius:.15rem;display:block}
+hr{border:0;border-top:1px solid #c8c8c8;width:100%;margin:0 0 .8rem}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.45rem;direction:ltr;position:relative;padding:.6rem;max-height:14.5rem;overflow-y:auto;background:#fff;border:1px solid #cfcfcf;border-radius:.3rem;align-content:start}
+.s{height:1.7rem;border:0;border-radius:.2rem;background:#ef5b4c;color:#fff;font-weight:600;font-size:.9rem;font-family:inherit;padding:0;cursor:pointer}
+.s.a{background:#26b58a}
+.s.b{background:#1f6fc9}
+.s.c{outline:2px solid #1a1a1a;outline-offset:1px}
+.btns{display:flex;gap:.5rem;margin-top:1rem}#sub{background:#ef5b4c}
+.gb{flex:1;border:0;border-radius:.25rem;background:#27b4d8;color:#fff;font:inherit;font-size:.82rem;padding:.4rem .2rem;cursor:pointer}
+.card{flex:1;margin:.8rem;background:#fff;border:1px solid #dcdcdc;border-radius:.3rem;display:flex;flex-direction:column;min-width:0}
+.qa{flex:1;padding:2.6rem 1.5rem 1rem;overflow:auto;direction:ltr;text-align:left}
+.qa h2{margin:0 0 1rem;font-size:1.1rem;font-weight:700}
+.qa p{margin:0 0 1.6rem;font-size:1.1rem}
+.o{display:flex;align-items:center;gap:.5rem;font-size:1.05rem;margin-bottom:.75rem;cursor:pointer;width:fit-content}
+.o input{width:1.05rem;height:1.05rem;margin:0;accent-color:#2b5c86}
+.nav{border-top:1px solid #bdbdbd;margin:0 .9rem;padding:.9rem 0;display:flex;justify-content:flex-start;direction:ltr}
+.ta{width:100%;min-height:9rem;font:inherit;font-size:1rem;padding:.6rem;border:1px solid #bdbdbd;border-radius:.3rem;resize:vertical;direction:ltr}.nb{background:#1f6fa3;color:#fff;border:0;border-radius:.3rem;font:inherit;font-size:1rem;padding:.5rem 1.6rem;cursor:pointer}
+button:focus-visible{outline:2px solid #1f6fc9;outline-offset:2px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:5;padding:1rem}
+.modal.on{display:flex}
+.box{background:#fff;padding:1.6rem 2rem;border-radius:.5rem;max-width:27rem;text-align:center;font-size:1.05rem;line-height:1.6}
+.box p{margin:0 0 1.2rem}
+.mb{display:flex;gap:.6rem;justify-content:center}
+.mb button{border:0;border-radius:.25rem;background:#0b6454;color:#fff;font:inherit;padding:.5rem 1.2rem;cursor:pointer}
+.mb button.alt{background:#7d8588}
+@media(max-width:800px){html{font-size:16px}.body{flex-direction:column-reverse;overflow:auto}aside{width:100%}.card{min-height:26rem}.grid{grid-template-columns:repeat(10,1fr)}}
+.pk p{margin:.4rem 0 0}
+</style>
+</head>
+<body>
+<div class="app">
+  <header id="hd">Online Examination</header>
+  <div class="body">
+    <aside>
+      <div class="timer"><div class="tl">الوقت المتبقي: <span id="ta"></span></div><div class="tb" id="tb"></div></div>
+      <div class="leg"><span><i style="background:#26b58a"></i>Solved</span><span><i style="background:#ef5b4c"></i>Unsolved</span><span><i style="background:#1f6fc9"></i>Review</span></div>
+      <hr>
+      <div class="grid" id="grid"></div>
+      <div class="btns"><button class="gb" id="sub">End Exam</button><button class="gb" id="mark">Review Exam</button></div>
+    </aside>
+    <main class="card">
+      <div class="qa"><h2 id="qh"></h2><p id="qt"></p><div id="opts"></div></div>
+      <div class="nav"><button class="nb" id="next">Next</button></div>
+    </main>
+  </div>
+</div>
+<div class="modal on" id="m"><div class="box" id="bx"><p id="mt">Loading exam...</p><div class="mb" id="mb"></div></div></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBoPia2RLbH3oxHvmH2APTUcTxyx3HRGac",
+  authDomain: "exams-dfe87.firebaseapp.com",
+  projectId: "exams-dfe87",
+  storageBucket: "exams-dfe87.firebasestorage.app",
+  messagingSenderId: "42103010026",
+  appId: "1:42103010026:web:21bcc8b6886efa91239d93"
+};
+const db = getFirestore(initializeApp(firebaseConfig));
+
+const $ = id => document.getElementById(id);
+const D = "٠١٢٣٤٥٦٧٨٩", ar = n => String(n).replace(/\d/g, d => D[d]);
+const L = ["A","B","C","D","E","F"];
+const BACK = "dashboard.html#exams";
+
+let Q = {}, N = 0, ans = {}, flag = {}, cur = 1, pend, s = 0, timer, running = false, fsOn = false;
+
+function modal(text, btns, dir){
+  $("bx").dir = dir || "ltr"; $("mt").textContent = text; $("mb").innerHTML = "";
+  (btns || []).forEach(b => {
+    const e = document.createElement("button"); e.textContent = b[0];
+    if (b[2]) e.className = "alt";
+    e.onclick = () => { $("m").classList.remove("on"); b[1] && b[1](); };
+    $("mb").appendChild(e);
+  });
+  $("m").classList.add("on");
+}
+const leave = () => { location.href = BACK; };
+
+function render(){
+  $("qh").textContent = "Question " + cur + " of " + N + (Q[cur].w ? " (Written)" : "") + ":";
+  $("qt").textContent = Q[cur].t;
+  $("opts").innerHTML = "";
+  const sel = pend !== undefined ? pend : ans[cur];
+  if (Q[cur].w) {
+    const ta = document.createElement("textarea");
+    ta.className = "ta"; ta.placeholder = "Write your answer here..."; ta.value = sel || "";
+    ta.oninput = () => { pend = ta.value.trim() ? ta.value : undefined; };
+    $("opts").appendChild(ta);
+  } else (Q[cur].o || []).forEach((o, i) => {
+    const l = document.createElement("label"); l.className = "o";
+    l.innerHTML = '<input type="radio" name="o"' + (sel === i ? " checked" : "") + '><span></span>';
+    l.lastChild.textContent = L[i] + ") " + o;
+    l.querySelector("input").onchange = () => { pend = i; };
+    $("opts").appendChild(l);
+  });
+  paint();
+}
+function paint(){
+  document.querySelectorAll(".s").forEach((b, k) => {
+    const i = k + 1;
+    b.className = "s" + (flag[i] ? " b" : ans[i] !== undefined ? " a" : "") + (i === cur ? " c" : "");
+  });
+}
+function scrollToQ(i){
+  const g = $("grid"), b = g.children[i - 1];
+  if (b) g.scrollTo({ top: b.offsetTop - parseFloat(getComputedStyle(g).paddingTop), behavior: "smooth" });
+}
+function guard(fn){
+  if (pend !== undefined && pend !== ans[cur])
+    modal("This question is not saved. You must press Next to save your answer. You can leave the question unsaved, or go back to it and press Next.",
+      [["Leave unsaved", () => { pend = undefined; fn(); }, 1], ["Go back"]]);
+  else fn();
+}
+function go(i){ cur = i; pend = undefined; render(); }
+function done(){
+  running = false; clearInterval(timer);
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  modal("Exam finished. Solved questions: " + Object.keys(ans).length + " of " + N + ".", [["Back to exams", leave]]);
+}
+function buildGrid(){
+  $("grid").innerHTML = "";
+  for (let i = 1; i <= N; i++) {
+    const b = document.createElement("button"); b.className = "s"; b.textContent = i;
+    b.onclick = () => guard(() => go(i)); $("grid").appendChild(b);
+  }
+}
+function tick(){
+  const p = n => String(n).padStart(2, "0");
+  const t = p(Math.floor(s / 3600)) + ":" + p(Math.floor(s % 3600 / 60)) + ":" + p(s % 60);
+  $("tb").textContent = t; $("ta").textContent = ar(t);
+}
+$("next").onclick = () => {
+  if (!N) return;
+  if (pend === undefined && ans[cur] === undefined) {
+    modal("Not allowed. You must select an answer before pressing Next. To move to another question without answering, click it in the question grid.", [["OK"]]);
+    return;
+  }
+  const p = cur;
+  if (pend !== undefined) { ans[cur] = pend; pend = undefined; }
+  go(cur < N ? cur + 1 : cur); scrollToQ(p);
+};
+$("mark").onclick = () => { if (!N) return; flag[cur] ? delete flag[cur] : flag[cur] = 1; paint(); };
+$("sub").onclick = () => { if (running) guard(done); };
+
+function begin(minutes){
+  ans = {}; flag = {}; cur = 1; pend = undefined; s = minutes * 60; running = true;
+  try { document.documentElement.requestFullscreen().catch(() => {}); } catch (e) {}
+  buildGrid(); tick(); render();
+  clearInterval(timer);
+  timer = setInterval(() => { if (s > 0) { s--; tick(); if (!s) done(); } }, 1000);
+}
+document.addEventListener("fullscreenchange", () => {
+  if (document.fullscreenElement) { fsOn = true; return; }
+  if (fsOn && running) { running = false; clearInterval(timer); leave(); }
+  fsOn = false;
+});
+
+(async function init(){
+  const examId = new URLSearchParams(location.search).get("id");
+  const studentKey = localStorage.getItem("currentStudentUsername");
+  if (!localStorage.getItem("currentStudentName") || !studentKey) { location.href = "login.html"; return; }
+  if (!examId) { modal("No exam selected.", [["Back to exams", leave]]); return; }
+  try {
+    // 1) هل الامتحان ده مسموح للطالب؟
+    const st = await getDoc(doc(db, "students", studentKey));
+    const allowed = (st.exists() && st.data().allowedExams) || [];
+    if (!allowed.includes(examId)) { modal("You do not have access to this exam.", [["Back to exams", leave]]); return; }
+
+    // 2) تحميل الامتحان
+    const ex = await getDoc(doc(db, "exams", examId));
+    if (!ex.exists() || !Array.isArray(ex.data().questions) || !ex.data().questions.length) {
+      modal("This exam is not available yet.", [["Back to exams", leave]]); return;
+    }
+    const e = ex.data();
+    e.questions.forEach((q, i) => { Q[i + 1] = q; });
+    N = e.questions.length;
+    const minutes = Number(e.duration) || (N + 1);
+    const title = e.title || examId;
+    $("hd").textContent = "Online Examination – " + title;
+    document.title = title + " – el website";
+    buildGrid(); $("tb").textContent = "--:--:--";
+    modal("You are about to start the " + title + " exam (" + N + " questions). The exam will start now and the timer will begin (" + minutes + " minutes). The exam opens in full screen; leaving full screen (F11 or Esc) cancels the exam and resets it. Do you want to start?",
+      [["Start Exam", () => begin(minutes)], ["Cancel", leave, 1]]);
+  } catch (err) {
+    console.error(err);
+    modal("Could not load the exam. Check your connection and try again.", [["Back to exams", leave]]);
+  }
+})();
+</script>
+</body>
+</html>

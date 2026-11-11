@@ -90,6 +90,36 @@ nav{display:flex;flex-direction:column;gap:6px}
 .empty p{margin:0;max-width:380px;color:var(--muted);line-height:1.6;font-size:16px}
 
 
+/* Exam cards */
+.exam-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;align-content:start;animation:fadeUp .5s cubic-bezier(.22,1,.36,1) both}
+.exam-card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:22px;display:flex;flex-direction:column;gap:14px;transition:transform .2s,box-shadow .2s}
+.exam-card:hover{transform:translateY(-3px);box-shadow:0 16px 36px rgba(15,157,132,.16)}
+.exam-card .ec-ico{width:48px;height:48px;border-radius:14px;background:var(--brand-l);display:grid;place-items:center}
+.exam-card .ec-ico svg{width:24px;height:24px;fill:none;stroke:var(--brand);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.exam-card h3{margin:0;font-size:19px;font-weight:800}
+.exam-card p{margin:0;color:var(--muted);font-weight:600;font-size:14px}
+.exam-card .btn{display:inline-block;text-align:center;align-self:flex-start;margin-top:auto}
+
+/* Profile photo */
+.avatar{overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.av-wrap{position:relative;margin-bottom:20px}
+.av-lg{width:132px;height:132px;border-radius:50%;background:var(--brand-l);display:grid;place-items:center;overflow:hidden;box-shadow:0 0 0 4px var(--card),0 0 0 7px var(--brand)}
+.av-lg svg{width:60px;height:60px;fill:none;stroke:var(--brand);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.av-lg img{width:100%;height:100%;object-fit:cover;display:block}
+.av-cam{position:absolute;right:-2px;bottom:-2px;width:42px;height:42px;border-radius:50%;border:3px solid var(--card);background:linear-gradient(120deg,var(--brand),var(--brand-d));cursor:pointer;display:grid;place-items:center;box-shadow:0 6px 14px rgba(15,157,132,.3);transition:transform .2s}
+.av-cam:hover{transform:scale(1.08)}
+.av-cam svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.av-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:22px}
+.btn{border:0;border-radius:12px;padding:11px 22px;font-weight:700;font-size:15px;cursor:pointer;background:linear-gradient(120deg,var(--brand),var(--brand-d));color:#fff;box-shadow:0 8px 16px rgba(15,157,132,.22);transition:transform .2s,opacity .2s}
+.btn.ghost{background:var(--field);color:var(--brand-d);box-shadow:none}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.btn:focus-visible,.av-cam:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.av-msg{min-height:22px;margin-top:14px;font-size:14px;font-weight:700;color:var(--muted)}
+.av-msg.ok{color:var(--brand-d)}
+.av-msg.err{color:#c0392b}
+
 /* Login success notification */
 .login-toast{
   position:fixed;top:24px;right:24px;z-index:100;
@@ -182,7 +212,7 @@ nav{display:flex;flex-direction:column;gap:6px}
     </div>
     <div class="menu-wrap">
       <button class="user" id="userBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="dd" aria-label="Account menu">
-        <div class="avatar"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></div>
+        <div class="avatar" id="headerAvatar"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></div>
         <svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
       </button>
       <div class="dd" id="dd">
@@ -238,6 +268,133 @@ nav{display:flex;flex-direction:column;gap:6px}
       }
   });
 
+  // ====== Profile photo (Firebase Firestore, stored as Base64 in students/{id}.avatar) ======
+  var firebaseConfig = {
+    apiKey: "AIzaSyBoPia2RLbH3oxHvmH2APTUcTxyx3HRGac",
+    authDomain: "exams-dfe87.firebaseapp.com",
+    projectId: "exams-dfe87",
+    storageBucket: "exams-dfe87.firebasestorage.app",
+    messagingSenderId: "42103010026",
+    appId: "1:42103010026:web:21bcc8b6886efa91239d93"
+  };
+  var FB_VER = "10.12.0";
+  var fbPromise = null;
+  var avatarData = localStorage.getItem("currentStudentAvatar") || "";
+  var headerAvatar = document.getElementById('headerAvatar');
+  var defaultAvatarSvg = headerAvatar ? headerAvatar.innerHTML : '';
+
+  function esc(t){return String(t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+
+  function getFb(){
+    if(!fbPromise){
+      var base='https://www.gstatic.com/firebasejs/'+FB_VER+'/';
+      fbPromise=Promise.all([import(base+'firebase-app.js'),import(base+'firebase-firestore.js')]).then(function(m){
+        var app=m[0].initializeApp(firebaseConfig), f=m[1];
+        return {db:f.getFirestore(app),doc:f.doc,getDoc:f.getDoc,updateDoc:f.updateDoc,
+                collection:f.collection,query:f.query,where:f.where,limit:f.limit,getDocs:f.getDocs};
+      });
+      fbPromise.catch(function(){fbPromise=null});
+    }
+    return fbPromise;
+  }
+
+  // يجيب مرجع مستند الطالب: من اليوزرنيم المحفوظ، أو بالبحث بالاسم الكامل
+  function getUserRef(fb){
+    var u=localStorage.getItem('currentStudentUsername');
+    if(u) return Promise.resolve(fb.doc(fb.db,'students',u));
+    return fb.getDocs(fb.query(fb.collection(fb.db,'students'),fb.where('username','==',studentName),fb.limit(1))).then(function(snap){
+      if(snap.empty) throw new Error('student not found');
+      localStorage.setItem('currentStudentUsername',snap.docs[0].id);
+      return snap.docs[0].ref;
+    });
+  }
+
+  function avatarImgHTML(){return '<img src="'+esc(avatarData)+'" alt="Profile photo">'}
+
+  function paintAvatars(){
+    if(headerAvatar) headerAvatar.innerHTML = avatarData ? avatarImgHTML() : defaultAvatarSvg;
+    var big=document.getElementById('avLarge');
+    if(big) big.innerHTML = avatarData ? avatarImgHTML() : defaultAvatarSvg;
+    var rm=document.getElementById('avRemove');
+    if(rm) rm.style.display = avatarData ? '' : 'none';
+  }
+
+  function cacheAvatar(v){
+    avatarData=v||'';
+    try{ if(avatarData) localStorage.setItem('currentStudentAvatar',avatarData); else localStorage.removeItem('currentStudentAvatar'); }catch(e){}
+    paintAvatars();
+  }
+
+  // تحميل الصورة من الداتابيز عند فتح الصفحة
+  paintAvatars();
+  getFb().then(getUserRef).then(function(ref){return getFb().then(function(fb){return fb.getDoc(ref)})}).then(function(snap){
+    if(snap.exists()) cacheAvatar(snap.data().avatar||'');
+  }).catch(function(e){console.warn('avatar load failed',e)});
+
+  // تصغير الصورة وقصها لمربع 256x256
+  function resizeImage(file,size){
+    return new Promise(function(resolve,reject){
+      var url=URL.createObjectURL(file), img=new Image();
+      img.onload=function(){
+        var c=document.createElement('canvas'); c.width=c.height=size;
+        var m=Math.min(img.width,img.height), sx=(img.width-m)/2, sy=(img.height-m)/2;
+        var ctx=c.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,size,size);
+        ctx.drawImage(img,sx,sy,m,m,0,0,size,size);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg',0.85));
+      };
+      img.onerror=function(){URL.revokeObjectURL(url);reject(new Error('bad image'))};
+      img.src=url;
+    });
+  }
+
+  function saveAvatar(value){
+    return getFb().then(function(fb){
+      return getUserRef(fb).then(function(ref){return fb.updateDoc(ref,{avatar:value})});
+    });
+  }
+
+  function accountHTML(){
+    var cam='<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4Z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+    return '<section class="empty">'+
+      '<div class="av-wrap"><div class="av-lg" id="avLarge"></div>'+
+      '<button type="button" class="av-cam" id="avCam" aria-label="Change profile photo">'+cam+'</button></div>'+
+      '<h3>'+esc(studentName)+'</h3>'+
+      '<p>Student ID / Number: <b>'+esc(studentId)+'</b><br>Enrolled Course: <b>'+esc(studentCourse)+'</b><br>Account Status: <b>Active &amp; Device Secure</b></p>'+
+      '<div class="av-actions"><button type="button" class="btn" id="avChange">Change photo</button>'+
+      '<button type="button" class="btn ghost" id="avRemove">Remove photo</button></div>'+
+      '<div class="av-msg" id="avMsg" role="status" aria-live="polite"></div>'+
+      '<input type="file" id="avInput" accept="image/*" hidden></section>';
+  }
+
+  function bindAccount(){
+    var input=document.getElementById('avInput'), msg=document.getElementById('avMsg'),
+        btns=[document.getElementById('avChange'),document.getElementById('avRemove'),document.getElementById('avCam')];
+    function say(t,c){msg.textContent=t;msg.className='av-msg'+(c?' '+c:'')}
+    function busy(b){btns.forEach(function(x){if(x)x.disabled=b})}
+    paintAvatars();
+    ['avChange','avCam'].forEach(function(id){document.getElementById(id).addEventListener('click',function(){input.click()})});
+
+    input.addEventListener('change',function(){
+      var f=input.files[0]; input.value='';
+      if(!f) return;
+      if(!/^image\//.test(f.type)){say('Please choose an image file.','err');return}
+      if(f.size>15*1024*1024){say('Image is too large (max 15 MB).','err');return}
+      busy(true); say('Saving…');
+      resizeImage(f,256).then(function(b64){
+        return saveAvatar(b64).then(function(){cacheAvatar(b64);say('Profile photo updated ✓','ok')});
+      }).catch(function(e){console.error(e);say('Could not save the photo. Check your connection and Firestore rules.','err')})
+        .then(function(){busy(false)});
+    });
+
+    document.getElementById('avRemove').addEventListener('click',function(){
+      busy(true); say('Removing…');
+      saveAvatar('').then(function(){cacheAvatar('');say('Photo removed','ok')})
+        .catch(function(e){console.error(e);say('Could not remove the photo.','err')})
+        .then(function(){busy(false)});
+    });
+  }
+
   var pages={
     'exams':{t:'Exams',d:'Your upcoming and available exams will appear here.',i:'<rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4V3h6v1M9 13l2 2 4-4"/>'},
     'formative':{t:'Formative',d:'Your formative assessments will appear here.',i:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>'},
@@ -247,7 +404,40 @@ nav{display:flex;flex-direction:column;gap:6px}
   };
   
   var content=document.getElementById('content'),title=document.getElementById('title'),crumb=document.getElementById('crumb'),
-      links=document.querySelectorAll('.nav'),examTab='midterm',ub=document.getElementById('userBtn'),dd=document.getElementById('dd');
+      links=document.querySelectorAll('.nav'),examTab=(sessionStorage.getItem('examTab')==='final'?'final':'midterm'),ub=document.getElementById('userBtn'),dd=document.getElementById('dd');
+
+    // ====== الامتحانات: بتتجاب من Firestore حسب allowedExams بتاعة الطالب ======
+  var examReq=0;
+  function examType(id,e){
+    if(e.type) return String(e.type).toLowerCase()==='final'?'final':'midterm';
+    return /^final/i.test(id)?'final':'midterm';
+  }
+  function loadExams(type){
+    var box=content.querySelector('.empty'); if(!box) return;
+    var original=box.innerHTML, my=++examReq;
+    box.innerHTML='<div class="ring"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><h3>Loading…</h3>';
+    getFb().then(function(fb){
+      return getUserRef(fb).then(function(ref){return fb.getDoc(ref)}).then(function(snap){
+        var allowed=(snap.exists()&&snap.data().allowedExams)||[];
+        return Promise.all(allowed.map(function(id){return fb.getDoc(fb.doc(fb.db,'exams',id))}));
+      });
+    }).then(function(docs){
+      if(my!==examReq) return;
+      var list=docs.filter(function(d){return d.exists()}).map(function(d){
+        var e=d.data(); return {id:d.id,title:e.title||d.id,type:examType(d.id,e),n:Array.isArray(e.questions)?e.questions.length:0,min:Number(e.duration)||(Array.isArray(e.questions)?e.questions.length+1:0)};
+      }).filter(function(x){return x.type===type});
+      if(!list.length){box.innerHTML=original;return}
+      var ico='<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4V3h6v1M9 13l2 2 4-4"/></svg>';
+      var html='<div class="exam-list">'+list.map(function(x){
+        return '<article class="exam-card"><div class="ec-ico">'+ico+'</div><h3>'+esc(x.title)+'</h3><p>'+x.n+' questions · '+x.min+' minutes</p>'+
+               '<a class="btn" href="exam.html?id='+encodeURIComponent(x.id)+'">Start exam</a></article>';
+      }).join('')+'</div>';
+      box.outerHTML=html;
+    }).catch(function(e){
+      console.error('exams load failed',e);
+      if(my===examReq) box.innerHTML='<div class="ring"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></div><h3>Could not load exams</h3><p>Check your connection and try again.</p>';
+    });
+  }
 
   function render(k){
     var key=typeof k==='string'?k:(location.hash||'').replace('#','');
@@ -269,18 +459,20 @@ nav{display:flex;flex-direction:column;gap:6px}
         var on=examTab===t[0];
         return '<button type="button" role="tab" class="tab'+(on?' active':'')+'" aria-selected="'+on+'" data-tab="'+t[0]+'">'+t[1]+'</button>';
       }).join('')+'</div>';
-    } else if(key==='account') {
-      // عرض البيانات التفصيلية التلقائية للطالب في صفحة معلومات الحساب
-      desc = 'Full Name: <b>' + studentName + '</b><br>' +
-             'Student ID / Number: <b>' + studentId + '</b><br>' +
-             'Enrolled Course: <b>' + studentCourse + '</b><br>' +
-             'Account Status: <b>Active & Device Secure</b>';
     }
-    
+
+    if(key==='account'){
+      content.innerHTML=accountHTML();
+      bindAccount();
+      document.body.classList.remove('open');
+      return;
+    }
+
     content.innerHTML=tabs+'<section class="empty"><div class="ring"><svg viewBox="0 0 24 24">'+p.i+'</svg></div><h3>'+(key==='account'?'Account Profile':'No content available')+'</h3><p>'+desc+'</p></section>';
     content.querySelectorAll('.tab').forEach(function(b){
-      b.addEventListener('click',function(){examTab=b.dataset.tab;render('exams')});
+      b.addEventListener('click',function(){examTab=b.dataset.tab;try{sessionStorage.setItem('examTab',examTab)}catch(e){}render('exams')});
     });
+    if(key==='exams') loadExams(examTab);
     document.body.classList.remove('open');
   }
 
@@ -303,6 +495,8 @@ nav{display:flex;flex-direction:column;gap:6px}
       localStorage.removeItem("currentStudentName");
       localStorage.removeItem("currentStudentId");
       localStorage.removeItem("currentStudentCourse");
+      localStorage.removeItem("currentStudentUsername");
+      localStorage.removeItem("currentStudentAvatar");
       window.location.href = "index.html";
   }
 
