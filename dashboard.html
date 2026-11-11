@@ -89,6 +89,28 @@ nav{display:flex;flex-direction:column;gap:6px}
 .empty h3{margin:0 0 8px;font-size:24px;font-weight:800}
 .empty p{margin:0;max-width:380px;color:var(--muted);line-height:1.6;font-size:16px}
 
+
+/* Login success notification */
+.login-toast{
+  position:fixed;top:24px;right:24px;z-index:100;
+  display:flex;align-items:center;gap:12px;
+  max-width:min(calc(100vw - 32px),360px);
+  padding:15px 20px;border-radius:14px;
+  color:#fff;background:#0b7766;
+  box-shadow:0 12px 30px rgba(11,119,102,.25);
+  font-weight:800;font-size:15px;
+  opacity:0;visibility:hidden;transform:translateY(-12px);
+  transition:opacity .25s ease,transform .25s ease,visibility .25s;
+  pointer-events:none;
+}
+.login-toast.show{opacity:1;visibility:visible;transform:translateY(0)}
+.login-toast svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:600px){
+  .login-toast{top:calc(12px + env(safe-area-inset-top,0px));right:16px;left:16px;
+    max-width:none;justify-content:center;text-align:center}
+}
+
 @media (max-width:900px){
   .side{width:min(280px,84vw);transform:translateX(-100%);visibility:hidden;overflow-y:auto;transition:transform .3s cubic-bezier(.22,1,.36,1),visibility 0s .3s}
   body.open{overflow:hidden}
@@ -128,6 +150,10 @@ nav{display:flex;flex-direction:column;gap:6px}
 </style>
 </head>
 <body>
+<div class="login-toast" id="loginToast" role="status" aria-live="polite">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+  <span>تم تسجيل الدخول بنجاح</span>
+</div>
 
 <aside class="side" id="side">
   <div class="brand">
@@ -181,6 +207,23 @@ nav{display:flex;flex-direction:column;gap:6px}
   if (!studentName) {
       window.location.href = "login.html";
       return;
+  }
+
+  // إظهار رسالة النجاح مرة واحدة عند دخول لوحة التحكم
+  // يتم إعادة ضبطها عند تسجيل الخروج لتظهر في عملية الدخول التالية.
+  if (!sessionStorage.getItem("dashboardLoginToastShown")) {
+      sessionStorage.setItem("dashboardLoginToastShown", "1");
+      window.addEventListener('DOMContentLoaded', function() {
+          var toast = document.getElementById('loginToast');
+          if (toast) {
+              requestAnimationFrame(function() {
+                  toast.classList.add('show');
+                  window.setTimeout(function() {
+                      toast.classList.remove('show');
+                  }, 3500);
+              });
+          }
+      });
   }
 
   // 2. تحديث الاسم في الهيدر فور تحميل الصفحة
@@ -245,7 +288,10 @@ nav{display:flex;flex-direction:column;gap:6px}
   function closeMenu(){dd.classList.remove('show');ub.setAttribute('aria-expanded','false')}
 
   window.addEventListener('hashchange',function(){render()});
-  if(!location.hash) { location.hash = '#exams'; } else { render(); }
+  // افتح صفحة Exams تلقائياً عند فتح لوحة التحكم بعد تسجيل الدخول
+  // تجاهل أي صفحة قديمة محفوظة في الرابط.
+  try { history.replaceState(null, '', '#exams'); } catch(e) { location.hash = '#exams'; }
+  render('exams');
 
   document.querySelectorAll('[data-page],[data-go]').forEach(function(a){
     a.addEventListener('click',function(e){e.preventDefault();go(a.dataset.page||a.dataset.go);closeMenu()});
@@ -253,6 +299,7 @@ nav{display:flex;flex-direction:column;gap:6px}
 
   // 3. تفعيل زر تسجيل الخروج ليوجه للصفحة الترحيبية وتفريغ الذاكرة
   function handleLogout() {
+      sessionStorage.removeItem("dashboardLoginToastShown");
       localStorage.removeItem("currentStudentName");
       localStorage.removeItem("currentStudentId");
       localStorage.removeItem("currentStudentCourse");
