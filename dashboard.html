@@ -184,6 +184,13 @@ nav{display:flex;flex-direction:column;gap:6px}
   .tab{font-size:15px}.crumb{font-size:13px}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition:none!important}}
+
+.res-score{font-size:38px;font-weight:800;color:var(--brand-d);display:flex;align-items:baseline;gap:6px}
+.res-score small{font-size:18px;color:var(--muted);font-weight:700}
+.res-pct{margin-left:auto;font-size:16px;background:var(--brand-l);color:var(--brand-d);padding:4px 12px;border-radius:999px}
+.res-bar{height:8px;border-radius:99px;background:var(--field);overflow:hidden}
+.res-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand-d));border-radius:99px}
+.res-card p{margin:0;color:var(--muted);font-size:14px}
 </style>
 </head>
 <body>
@@ -446,6 +453,43 @@ nav{display:flex;flex-direction:column;gap:6px}
     });
   }
 
+  // ====== النتائج: بتتحسب من إجابات الطالب المحفوظة + مفتاح الإجابة في الامتحان ======
+  function fmtDate(ms){try{return new Date(ms).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}}
+  function loadResults(){
+    var box=content.querySelector('.empty'); if(!box) return;
+    var original=box.innerHTML, my=++examReq;
+    box.innerHTML='<div class="ring"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><h3>Loading…</h3>';
+    getFb().then(function(fb){
+      return getUserRef(fb).then(function(ref){return fb.getDoc(ref)}).then(function(snap){
+        var res=(snap.exists()&&snap.data().results)||{}, ids=Object.keys(res);
+        return Promise.all(ids.map(function(id){return fb.getDoc(fb.doc(fb.db,'exams',id))})).then(function(docs){return {res:res,docs:docs}});
+      });
+    }).then(function(o){
+      if(my!==examReq) return;
+      var list=o.docs.filter(function(d){return d.exists()}).map(function(d){
+        var e=d.data(), r=o.res[d.id]||{}, a=r.answers||{}, qs=Array.isArray(e.questions)?e.questions:[], key=Array.isArray(e.answers)?e.answers:[];
+        var total=qs.filter(function(q){return !q.w}).length, sc=null;
+        if(key.length){sc=0;qs.forEach(function(q,i){if(!q.w&&a[i+1]===key[i])sc++})}
+        return {id:d.id,title:e.title||d.id,total:total,score:sc,at:r.finishedAt||0};
+      }).sort(function(x,y){return y.at-x.at});
+      if(!list.length){box.innerHTML=original;return}
+      var ico='<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>';
+      var html='<div class="exam-list">'+list.map(function(x){
+        var pct=(x.score===null||!x.total)?null:Math.round(x.score*100/x.total);
+        return '<article class="exam-card res-card"><div class="ec-ico">'+ico+'</div><h3>'+esc(x.title)+'</h3>'+
+          (pct===null?'<p>Result pending — the answer key has not been added yet.</p>':
+            '<div class="res-score">'+x.score+' <small>/ '+x.total+'</small><span class="res-pct">'+pct+'%</span></div>'+
+            '<div class="res-bar"><i style="width:'+pct+'%"></i></div>')+
+          '<p>'+esc(fmtDate(x.at))+'</p>'+
+          '<a class="btn" href="review.html?id='+encodeURIComponent(x.id)+'">Review questions</a></article>';
+      }).join('')+'</div>';
+      box.outerHTML=html;
+    }).catch(function(e){
+      console.error('results load failed',e);
+      if(my===examReq) box.innerHTML='<div class="ring"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></div><h3>Could not load results</h3><p>Check your connection and try again.</p>';
+    });
+  }
+
   function render(k){
     var key=typeof k==='string'?k:(location.hash||'').replace('#','');
     if(!pages[key]) key='exams';
@@ -480,6 +524,7 @@ nav{display:flex;flex-direction:column;gap:6px}
       b.addEventListener('click',function(){examTab=b.dataset.tab;try{sessionStorage.setItem('examTab',examTab)}catch(e){}render('exams')});
     });
     if(key==='exams') loadExams(examTab);
+    if(key==='results') loadResults();
     document.body.classList.remove('open');
   }
 
@@ -489,8 +534,10 @@ nav{display:flex;flex-direction:column;gap:6px}
   window.addEventListener('hashchange',function(){render()});
   // افتح صفحة Exams تلقائياً عند فتح لوحة التحكم بعد تسجيل الدخول
   // تجاهل أي صفحة قديمة محفوظة في الرابط.
-  try { history.replaceState(null, '', '#exams'); } catch(e) { location.hash = '#exams'; }
-  render('exams');
+  var startPage='exams';
+  try{ var sp=sessionStorage.getItem('openPage'); sessionStorage.removeItem('openPage'); if(sp&&pages[sp]) startPage=sp; }catch(e){}
+  try { history.replaceState(null, '', '#'+startPage); } catch(e) { location.hash = '#'+startPage; }
+  render(startPage);
 
   document.querySelectorAll('[data-page],[data-go]').forEach(function(a){
     a.addEventListener('click',function(e){e.preventDefault();go(a.dataset.page||a.dataset.go);closeMenu()});

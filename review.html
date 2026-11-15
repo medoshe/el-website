@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Review – el website</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#f4faf8;--card:#fff;--text:#12263a;--muted:#5d6b78;--brand:#0f9d84;--brand-d:#0b7766;--brand-l:#d9f2ec;--field:#f1f4f5;--line:#e1e8eb;
+--bad:#d64545;--bad-l:#fdeeee;--bad-b:#f3b9b9;--ok:#1a9a64;--ok-l:#e8f7ef;--ok-b:#b6e3cb;--shadow:0 10px 30px rgba(15,157,132,.10);
+color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 90px)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Nunito",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:var(--text);background:var(--bg)}
+.top{position:sticky;top:0;z-index:10;background:rgba(244,250,248,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:14px 20px}
+.top-in{max-width:860px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.back{border:0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font:inherit;font-weight:700;color:var(--brand-d);cursor:pointer}
+.back:hover{background:var(--brand);color:#fff}
+.ttl{flex:1;min-width:160px}
+.ttl small{display:block;color:var(--muted);font-size:13px}
+.ttl b{font-size:19px;font-weight:800}
+.wrap{max-width:860px;margin:0 auto;padding:22px 16px 60px}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:18px}
+.st{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow)}
+.st span{display:block;color:var(--muted);font-size:13px;font-weight:600}
+.st b{font-size:26px;font-weight:800}
+.st.g b{color:var(--ok)}.st.r b{color:var(--bad)}.st.m b{color:var(--brand-d)}
+.tabs{display:inline-flex;gap:6px;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:18px;flex-wrap:wrap}
+.tab{border:0;background:transparent;padding:9px 20px;border-radius:10px;font:inherit;font-weight:700;color:var(--muted);cursor:pointer}
+.tab.on{background:linear-gradient(120deg,var(--brand),var(--brand-d));color:#fff}
+.q{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:18px 20px;margin-bottom:14px;box-shadow:var(--shadow)}
+.q.bad{background:var(--bad-l);border-color:var(--bad-b)}
+.q.good{border-color:var(--ok-b)}
+.qh{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.qn{font-weight:800;font-size:15px;color:var(--muted)}
+.bad .qn{color:var(--bad)}
+.pill{font-size:12px;font-weight:800;border-radius:999px;padding:3px 10px;background:var(--field);color:var(--muted)}
+.bad .pill{background:var(--bad);color:#fff}
+.good .pill{background:var(--ok);color:#fff}
+.qt{margin:0 0 12px;font-size:17px;font-weight:700;line-height:1.55}
+.bad .qt{color:#a82d2d}
+.op{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;margin-bottom:8px;font-size:16px;line-height:1.45}
+.op .l{font-weight:800;color:var(--muted);flex:none}
+.op .t{flex:1;min-width:0;overflow-wrap:anywhere}
+.op .mk{flex:none;font-weight:800;font-size:19px;line-height:1}
+.op.pick-bad{border-color:var(--bad);background:#fff;color:var(--bad);font-weight:700}
+.op.pick-bad .l,.op.pick-bad .mk{color:var(--bad)}
+.op.pick-ok{border-color:var(--ok);background:var(--ok-l);font-weight:700}
+.op.pick-ok .l,.op.pick-ok .mk{color:var(--ok)}
+.op.pick-n{border-color:var(--brand);background:var(--brand-l);font-weight:700}
+.ans{margin-top:10px;padding:10px 14px;border-radius:12px;background:var(--ok-l);border:1px solid var(--ok-b);color:#13693f;font-weight:700;line-height:1.5}
+.ans small{display:block;color:var(--muted);font-weight:600}
+.note{background:#fff7e0;border:1px solid #f0dca0;color:#7a5b00;border-radius:14px;padding:12px 16px;margin-bottom:16px;font-weight:600}
+.msg{text-align:center;padding:60px 16px;color:var(--muted);font-size:18px}
+</style>
+</head>
+<body>
+<div class="top"><div class="top-in">
+  <button class="back" id="back" type="button">← Back to results</button>
+  <div class="ttl"><small>Question review</small><b id="title">Loading…</b></div>
+</div></div>
+<div class="wrap" id="wrap"><div class="msg">Loading…</div></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const db = getFirestore(initializeApp({
+  apiKey: "AIzaSyBoPia2RLbH3oxHvmH2APTUcTxyx3HRGac",
+  authDomain: "exams-dfe87.firebaseapp.com",
+  projectId: "exams-dfe87",
+  storageBucket: "exams-dfe87.firebasestorage.app",
+  messagingSenderId: "42103010026",
+  appId: "1:42103010026:web:21bcc8b6886efa91239d93"
+}));
+const $ = id => document.getElementById(id);
+const L = ["A","B","C","D","E","F"];
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+
+function toResults(){ try { sessionStorage.setItem("openPage", "results"); } catch (e) {} location.href = "dashboard.html"; }
+$("back").onclick = toResults;
+
+function show(msg){ $("wrap").innerHTML = ""; $("wrap").appendChild(el("div", "msg", msg)); }
+
+(async function(){
+  const studentKey = localStorage.getItem("currentStudentUsername");
+  if (!localStorage.getItem("currentStudentName") || !studentKey) { location.href = "login.html"; return; }
+  const id = new URLSearchParams(location.search).get("id");
+  if (!id) { show("No exam selected."); return; }
+  try {
+    const [st, ex] = await Promise.all([getDoc(doc(db, "students", studentKey)), getDoc(doc(db, "exams", id))]);
+    const r = st.exists() && st.data().results && st.data().results[id];
+    if (!r) { show("You have no saved result for this exam."); return; }
+    if (!ex.exists()) { show("This exam is no longer available."); return; }
+    const e = ex.data(), qs = e.questions || [], key = Array.isArray(e.answers) ? e.answers : [], a = r.answers || {};
+    $("title").textContent = e.title || id;
+    document.title = (e.title || id) + " – Review";
+
+    // compute
+    const items = qs.map((q, i) => {
+      const n = i + 1, mine = a[n], has = mine !== undefined && mine !== null, ok = key.length ? has && mine === key[i] : null;
+      return { n, q, mine: has ? mine : null, right: key.length ? key[i] : null, ok, status: !key.length ? "n" : ok ? "g" : has ? "b" : "u" };
+    }).filter(x => !x.q.w);
+    const cnt = s => items.filter(x => x.status === s).length;
+    const good = cnt("g"), bad = cnt("b"), un = cnt("u"), total = items.length;
+
+    const w = $("wrap"); w.innerHTML = "";
+    if (!key.length) w.appendChild(el("div", "note", "The answer key for this exam has not been added yet, so your answers are shown without grading."));
+    else {
+      const sum = el("div", "sum");
+      [["m", "Score", good + " / " + total + " (" + Math.round(good * 100 / total) + "%)"], ["g", "Correct", good], ["r", "Wrong", bad], ["", "Not answered", un]]
+        .forEach(([c, l, v]) => { const d = el("div", "st " + c); d.appendChild(el("span", "", l)); d.appendChild(el("b", "", v)); sum.appendChild(d); });
+      w.appendChild(sum);
+    }
+
+    const tabs = el("div", "tabs"); let filter = "all";
+    const list = el("div");
+    const defs = key.length ? [["all", "All (" + total + ")"], ["wrong", "Wrong (" + (bad + un) + ")"], ["right", "Correct (" + good + ")"]] : [["all", "All (" + total + ")"]];
+    defs.forEach(([k, label]) => {
+      const b = el("button", "tab" + (k === "all" ? " on" : ""), label); b.type = "button";
+      b.onclick = () => { filter = k; tabs.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t === b)); draw(); };
+      tabs.appendChild(b);
+    });
+    w.appendChild(tabs); w.appendChild(list);
+
+    function draw(){
+      list.innerHTML = "";
+      items.filter(x => filter === "all" || (filter === "wrong" ? (x.status === "b" || x.status === "u") : x.status === "g")).forEach(x => {
+        const card = el("div", "q " + (x.status === "g" ? "good" : x.status === "b" || x.status === "u" ? "bad" : ""));
+        const h = el("div", "qh"); h.appendChild(el("span", "qn", "Question " + x.n + " of " + qs.length));
+        const pillText = x.status === "g" ? "Correct" : x.status === "b" ? "Wrong" : x.status === "u" ? "Not answered" : "";
+        if (pillText) h.appendChild(el("span", "pill", pillText));
+        card.appendChild(h);
+        card.appendChild(el("p", "qt", x.q.t));
+        (x.q.o || []).forEach((o, i) => {
+          const picked = x.mine === i;
+          const cls = picked ? (x.status === "g" ? "pick-ok" : x.status === "b" ? "pick-bad" : "pick-n") : "";
+          const row = el("div", "op " + cls);
+          row.appendChild(el("span", "l", L[i] + ")")); row.appendChild(el("span", "t", o));
+          if (picked && x.status === "b") row.appendChild(el("span", "mk", "✗"));
+          if (picked && x.status === "g") row.appendChild(el("span", "mk", "✓"));
+          card.appendChild(row);
+        });
+        if (x.status === "b" || x.status === "u") {
+          const box = el("div", "ans");
+          if (x.status === "u") box.appendChild(el("small", "", "You did not answer this question."));
+          box.appendChild(document.createTextNode("✓ Correct answer: " + L[x.right] + ") " + (x.q.o[x.right] || "")));
+          card.appendChild(box);
+        }
+        list.appendChild(card);
+      });
+      if (!list.children.length) list.appendChild(el("div", "msg", "Nothing to show here."));
+    }
+    draw();
+  } catch (err) {
+    console.error(err);
+    show("Could not load the review. Check your connection and try again.");
+  }
+})();
+</script>
+</body>
+</html>

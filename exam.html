@@ -68,7 +68,7 @@ button:focus-visible{outline:2px solid #1f6fc9;outline-offset:2px}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBoPia2RLbH3oxHvmH2APTUcTxyx3HRGac",
@@ -85,7 +85,7 @@ const D = "٠١٢٣٤٥٦٧٨٩", ar = n => String(n).replace(/\d/g, d => D[d]);
 const L = ["A","B","C","D","E","F"];
 const BACK = "dashboard.html#exams";
 
-let Q = {}, N = 0, ans = {}, flag = {}, cur = 1, pend, s = 0, timer, running = false, fsOn = false;
+let KEY = [], EID = "", Q = {}, N = 0, ans = {}, flag = {}, cur = 1, pend, s = 0, timer, running = false, fsOn = false;
 
 function modal(text, btns, dir){
   $("bx").dir = dir || "ltr"; $("mt").textContent = text; $("mb").innerHTML = "";
@@ -135,10 +135,33 @@ function guard(fn){
   else fn();
 }
 function go(i){ cur = i; pend = undefined; render(); }
+function score(){
+  if (!KEY.length) return null;
+  let c = 0;
+  for (let i = 1; i <= N; i++) if (!Q[i].w && ans[i] === KEY[i - 1]) c++;
+  return c;
+}
+async function saveResult(){
+  const a = {}; Object.keys(ans).forEach(k => { a[k] = ans[k]; });
+  const total = Object.values(Q).filter(q => !q.w).length;
+  await updateDoc(doc(db, "students", localStorage.getItem("currentStudentUsername")),
+    { ["results." + EID]: { answers: a, total: total, score: score(), finishedAt: Date.now() } });
+}
+function toResults(){ try { sessionStorage.setItem("openPage", "results"); } catch (e) {} location.href = BACK; }
+async function finish(){
+  modal("Saving your result...", []);
+  try {
+    await saveResult();
+    modal("Exam finished. Your answers were saved and graded automatically.", [["View results", toResults]]);
+  } catch (err) {
+    console.error(err);
+    modal("Exam finished, but your result could not be saved. Check your connection and try again.", [["Try again", finish]]);
+  }
+}
 function done(){
   running = false; clearInterval(timer);
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-  modal("Exam finished. Solved questions: " + Object.keys(ans).length + " of " + N + ".", [["Back to exams", leave]]);
+  finish();
 }
 function buildGrid(){
   $("grid").innerHTML = "";
@@ -195,6 +218,7 @@ document.addEventListener("fullscreenchange", () => {
       modal("This exam is not available yet.", [["Back to exams", leave]]); return;
     }
     const e = ex.data();
+    EID = examId; KEY = Array.isArray(e.answers) ? e.answers : [];
     e.questions.forEach((q, i) => { Q[i + 1] = q; });
     N = e.questions.length;
     const minutes = Number(e.duration) || (N + 1);
